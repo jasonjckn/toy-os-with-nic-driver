@@ -1,0 +1,22 @@
+config_interface: wx
+display_library: wx
+megs: 32
+romimage: file=$BXSHARE/BIOS-bochs-latest
+vgaromimage: file=$BXSHARE/VGABIOS-lgpl-latest
+floppya: 1_44=/dev/loop0, status=inserted
+boot: a
+log: log_bochs
+mouse: enabled=0
+clock: sync=realtime
+cpu: ips=500000
+
+panic: action=fatal
+debug: action=report
+info: action=report
+
+ne2k: ioaddr=0x300, irq=3, mac=b0:c4:20:00:00:00, ethmod=linux, ethdev=eth0
+
+#ne2k: ioaddr=0x300, irq=3, mac=b0:c4:20:00:00:00, ethmod=null
+#ne2k: enabled=1, ioaddr=0x300, irq=3, mac=b0:c4:20:00:00:00, ethmod=null, ethdev=xl0, script=none
+
+#gdbstub: enabled=1, port=1234, text_base=0, data_base=0, bss_base=0
