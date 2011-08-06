@@ -23,7 +23,7 @@ void nic_int(registers_t r) {
     monitor_write("Clojure says> ");
     monitor_write(buf+sizeof(udp_pkt_t));
 
-    monitor_write("You say> "); 
+    //monitor_write("You say> "); 
 
     outbr(0x01, 0x307);
 }
@@ -62,7 +62,7 @@ void kbd_drv(registers_t r) {
             send_arp_reply();
             memset(line, 'X', 80);
             cursor = 0;
-            monitor_write("You say> "); 
+            //monitor_write("You say> "); 
         }
     }
 }
@@ -124,7 +124,7 @@ void standard() {
 
     monitor_write("KERNEL>> Kernel Finished Loading\n\n");
 
-    monitor_write("You say> "); 
+    //monitor_write("You say> "); 
 }
 
 int main(struct multiboot *mboot_ptr)
@@ -135,12 +135,10 @@ int main(struct multiboot *mboot_ptr)
     monitor_clear();
     register_interrupt_handler(IRQ3, nic_int);
     register_interrupt_handler(IRQ1, kbd_drv2);
-    ne2k_Linkup_Main2();
+    ne2k_Linkup_Main();
     asm volatile("sti");
 
     standard();
-
-
 
     return 0;
 }

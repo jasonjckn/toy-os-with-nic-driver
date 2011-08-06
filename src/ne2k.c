@@ -229,26 +229,6 @@ static size_t CopyPktFromCard(u8* dest, u32 max_len)
 
 
 // Returns size of pkt, or zero if none received.
-size_t ne2k_Receive_orig(u8* pkt, size_t max_len)
-{
-  size_t ret = 0;
-  
-  outbr(NE_PAGE1, NE_CMD);
-  u32 current = inb(EN1_CURR);
-  
-  // Check if rsr fired.
-  outbr(NE_PAGE0, NE_CMD);
-  u32 boundary = inb(EN0_BOUNDARY);
-  
-  if (boundary != current)
-  {
-    ret = CopyPktFromCard(pkt, max_len);
-    g_RX_packets++;
-  }
-  
-  return ret;  
-}
-
 // Returns size of pkt, or zero if none received.
 size_t ne2k_Receive(u8* pkt, size_t max_len)
 {
@@ -303,44 +283,6 @@ void ne2k_rx_status(u8* pkt, size_t max_len)
 }
 
 
-// queue packet for transmission
-void ne2k_Transmit2(u8* pkt, size_t length)
-{
-  outbr(NE_PAGE0 | NE_START, NE_CMD);
-  outbr(ISR_DMA_COMPLETE, EN0_ISR);
-
-  SetRemByteCount(length);
-  SetRemAddress(16*1024);
-
-  outbr(NE_REMOTE_WRITE | NE_START, NE_CMD);
-  
-  
-  u32 i;
-  for (i=0;i<length;i++)
-  {
-    outbr(*pkt, NE_BASE + 0x10);
-    pkt++;
-  }
-  outbr(ISR_DMA_COMPLETE, EN0_ISR);
-  outbr(NE_PAGE0 | NE_START, NE_CMD);
-
-  // Set how many bytes to transmit
-  SetTxCount(length);
-
- // set transmit page start address to where we copied data above.
-  outbr((16*1024) >> 8, EN0_TPSR);
-
-    // issue command to actually transmit a frame
-  outbr(NE_PAGE0 | NE_TRANSMIT | NE_START, NE_CMD);  
-
-  // Wait for transmission to complete.
-  u32 counter = 0;
-  while (inb(NE_CMD) & 0x04) { counter++; }
-  monitor_write("KERNEL>> Done transmit (counter=");
-  monitor_write_dec(counter);
-  monitor_write(")\n");
-
-}
 
 // queue packet for transmission
 void ne2k_Transmit(u8* pkt, size_t length, int silent)
@@ -368,37 +310,6 @@ void ne2k_Transmit(u8* pkt, size_t length, int silent)
   g_TX_packets++;
 }
 
-
-
-
-// Wait for the link to come up and init the buffers if it does
-void ne2k_Linkup_Main()
-{
-  //NetDevice* nic = new ne2k;
-  
-  // Back to page 0
-  outbr(NE_PAGE0_STOP, NE_CMD);
-
-  // That's for the card area, however we must also set the mac in the card ram as well, because that's what the
-  // qemu emulation actually uses to determine if the packet's bound for this NIC.
-  u8* mac = (u8*)ETHER_MAC;
-  u32 i;
-  for (i=0;i<6;i++)
-  {
-    CopyDataToCard(i*2, mac, 1);
-    mac++;
-  }
-
-  // 8-bit access only, makes the maths simpler.
-  outbr(0, NE_BASE + 0x0e);
-
-  // setup receive buffer location
-  outbr(RX_BUFFER_START, EN0_STARTPG);
-  outbr(RX_BUFFER_END, EN0_STOPPG);
-
-  //SetNetDevice(nic);
-}
-
 void set_physical_addr() {
   outbr(NE_PAGE1_STOP, NE_CMD);
 
@@ -418,18 +329,12 @@ void set_interrupt_mask() {
   outbr(0x1, NE_BASE + 0x0f);
 }
 
-void ne2k_Linkup_Main2()
+void ne2k_Linkup_Main()
 {
     ne2k_Init();
 
   set_physical_addr();
   set_interrupt_mask();
-  //outbr(NE_PAGE0_STOP, NE_CMD);
-  //u8* mac = (u8*)ETHER_MAC;
-  //CopyDataToCard(0, mac, 6);
-
-  //CopyDataToCard(0, mac, 6);
-  // setup receive buffer location
   
   outbr(NE_PAGE0_STOP, NE_CMD);
   // clear isr bits

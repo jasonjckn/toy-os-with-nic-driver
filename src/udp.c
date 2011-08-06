@@ -1,17 +1,6 @@
 #include "common.h"
 #include "udp.h"
 
-unsigned short ip_chksum(u16 *buf, int nwords)
-{       
-        unsigned long sum;
-        for(sum=0; nwords>0; nwords--)
-                sum += *buf++;
-        sum = (sum >> 16) + (sum &0xffff);
-        sum += (sum >> 16);
-        return (unsigned short)(~sum);
-}
-
-
 u16 ip_sum_calc(u16 len_ip_header, u8 buff[])
 {
 u16 word16;
@@ -145,72 +134,3 @@ int create_pkt(u8* buf, char * s) {
     return set_ip_hdr(pkt, s);
 }
 
-/*
-#include <stdio.h>
-int print_pkt(int n, u8*pkt) {
-    int i;
-    for(i=0; i < n; i++) {
-        printf("0x%02x, ", pkt[i]);
-    }
-    printf("\n");
-}
-
-int test1() {
-
-u8 pkt[] = {
-
-0x00, 0x50, 0x56, 0xc0, 0x00, 0x08, 
-0xb0, 0xc4, 0x20, 0x00, 0x00, 0x00, 
-
-0x08, 
-0x00, 
-0x45, // version = 4, ihl=5
-0x00, // tos
-0x00, 0x22,  // length
-0x12, 0x34,  // ident
-
-0x40, // flags
-0x00,  //offset?????
-
-0xff,  //ttl
-0x11,  // protocol
-0x06, 0xd5,  // chksum
-
-0xac, 0x10, 0x85, 0x9f,  // src ip
-0xac, 0x10, 0x85, 0x01, // dst
-
-0x00, 0xff, 
-0x23, 0x2a, 
-0x00, 0x0e, 
-0x1d, 0x03, // checksum
-0x74, 0x65, 0x73, 0x74, 0x74, 0x0a};
-
-    u8 pseudo[] = {
-0x00, 0xff, 
-0x23, 0x2a, 
-0x00, 0x0e, 
-0x00, 0x00, // checksum
-0x74, 0x65, 0x73, 0x74, 0x74, 0x0a, 
-
-0, 0
-};
-
-    u8 src[] = {172,16,133,159};
-    u8 dst[] = {172,16,133,1};
-
-    u16 len = 14;
-    u16 chk = udp_sum_calc(len, src, dst, len%2==1, (u8*)pseudo);
-
-    //printf("chk = %x", (u32)chk);
-    u8 buf[500] = {};
-    len = create_pkt(buf, "testt\n");
-    print_pkt(len, buf);
-    printf("=====\n");
-    print_pkt(48, pkt);
-
-    int i;
-    for(i=0; i < len; i++ ) {
-        if(pkt[i] != buf[i]) { printf("oops");}
-    }
-}
-*/
