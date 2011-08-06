@@ -9,8 +9,19 @@
 #include "paging.h"
 #include "isr.h"
 
+void print_pkt(u8* buf, size_t len );
+
 void nic_int(registers_t r) {
-    monitor_write("NIC interrupt\n");
+    monitor_write("KERNEL>> NIC interrupt\n");
+
+    u8 buf[500] = {};
+    size_t len = ne2k_Receive(buf, 400);
+    //print_pkt(buf, len);
+    udp_pkt_t* pkt = (udp_pkt_t*)buf;
+    //size_t msg_len = (pkt->udp.len - sizeof(udp_hdr_t))
+    monitor_write("Msg> ");
+    monitor_write(buf+sizeof(udp_pkt_t));
+
 
 }
 
@@ -51,12 +62,34 @@ void kbd_drv(registers_t r) {
         }
     }
 }
+void print_pkt(u8* buf, size_t len ) {
+        if(len > 0 ) {
+            monitor_write("packet len= ");
+            monitor_write_dec(len);
+            monitor_write("\n");
+
+            int i;
+            for(i = 0; i  < len; i++ ) {
+                if(i%10==0) {
+                    monitor_write("\n");
+                }
+                monitor_write_hex(buf[i]);
+                monitor_write(" ");
+            }
+            monitor_write("\n");
+        } else {
+            monitor_write("no packets received\n");
+        }
+}
 
 void kbd_drv2(registers_t r) {
     unsigned char cx= 0;
     char c = kbd_to_ascii(cx = inb(0x60));
 
     if (c != 0) { 
+        u8 buf[500] = {};
+        size_t len = ne2k_Receive(buf, 400);
+        print_pkt(buf, len);
     }
 }
 
@@ -89,18 +122,12 @@ int main(struct multiboot *mboot_ptr)
 
     monitor_clear();
     register_interrupt_handler(IRQ3, nic_int);
-    //register_interrupt_handler(IRQ1, kbd_drv2);
+    register_interrupt_handler(IRQ1, kbd_drv2);
     ne2k_Linkup_Main2();
     asm volatile("sti");
 
     standard();
 
-    /*
-    char buf[400] = {};
-    while(1) { 
-        ne2k_Receive(buf, 400);
-    }
-    */
 
 
     return 0;

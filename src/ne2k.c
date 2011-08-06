@@ -60,6 +60,7 @@
 #define NE_PAGE1        0x60
 
 #define NE_REMOTE_WRITE        0x10
+#define NE_REMOTE_READ        0x08
 #define ISR_DMA_COMPLETE        0x40
 
 
@@ -127,16 +128,8 @@ void ne2k_Init(void)
   g_RX_packets = 0;
   g_TX_packets = 0;
   
-  ne2k_rx_disable();
+  //ne2k_rx_disable();
 }
-
-void ne2k_Init2(void)
-{
-    ne2k_Init();
-  ne2k_rx_disable();
-  outbr(NE_START, NE_CMD);
-}
-
 
 static void SetTxCount(u32 val)
 {
@@ -187,14 +180,22 @@ static void CopyDataToCard(u32 dest, u8* src, u32 length)
 
 static void CopyDataFromCard(u32 src, u8* dest, u32 length)
 {
+  outbr(NE_PAGE0, NE_CMD);
+  outbr(ISR_DMA_COMPLETE, EN0_ISR);
+
   SetRemAddress(src);
   SetRemByteCount(length);
+
+  outbr(NE_REMOTE_READ | NE_START, NE_CMD);
+
   u32 i;
   for (i=0;i<length;i++)
   {
     *dest = inb(NE_BASE + 0x10);
     dest++;
   }
+
+  outbr(ISR_DMA_COMPLETE, EN0_ISR);
 }
 
 
@@ -247,6 +248,7 @@ size_t ne2k_Receive_orig(u8* pkt, size_t max_len)
   
   return ret;  
 }
+
 // Returns size of pkt, or zero if none received.
 size_t ne2k_Receive(u8* pkt, size_t max_len)
 {
@@ -261,9 +263,41 @@ size_t ne2k_Receive(u8* pkt, size_t max_len)
 
   if (boundary != current)
   {
-    monitor_write("Packet received!");
+    ret = CopyPktFromCard(pkt, max_len);
+    g_RX_packets++;
   }
   
+  return ret;  
+}
+
+// Returns size of pkt, or zero if none received.
+void ne2k_rx_status(u8* pkt, size_t max_len)
+{
+  size_t ret = 0;
+  
+  outbr(NE_PAGE1 | NE_START, NE_CMD);
+  u32 current = inb(EN1_CURR);
+  
+  // Check if rsr fired.
+  outbr(NE_PAGE0, NE_CMD);
+  u32 boundary = inb(EN0_BOUNDARY);
+
+  u8 rsr = inb(NE_BASE + 0x0c);
+  u8 isr = inb(NE_BASE + 0x07); 
+
+    monitor_write("\nboundary=");
+    monitor_write_hex(boundary);
+    monitor_write("\n current=");
+    monitor_write_hex(current);
+    monitor_write("\n packet rx no errors?=");
+    monitor_write_hex(rsr & 0x01);
+    monitor_write("\n packet rx with errors?=");
+    monitor_write_hex(isr & 0x04);
+    monitor_write("\n overflow rx buf?=");
+    monitor_write_hex(isr & 0x10);
+    monitor_write("\n reset state=");
+    monitor_write_hex(isr & 0x80);
+    monitor_write("\n");
   
   return ret;  
 }
@@ -377,11 +411,14 @@ void set_physical_addr() {
 
 void set_interrupt_mask() {
   outbr(NE_PAGE0_STOP, NE_CMD);
-  outbr(0, NE_BASE + 0x0f);
+  //outbr(0, NE_BASE + 0x0f);  // no interrupts.
+  outbr(0x1, NE_BASE + 0x0f);
 }
 
 void ne2k_Linkup_Main2()
 {
+    ne2k_Init();
+
   set_physical_addr();
   set_interrupt_mask();
   //outbr(NE_PAGE0_STOP, NE_CMD);
@@ -391,15 +428,32 @@ void ne2k_Linkup_Main2()
   //CopyDataToCard(0, mac, 6);
   // setup receive buffer location
   
-  // set start/end pages of receive buffer ring.
   outbr(NE_PAGE0_STOP, NE_CMD);
+  // clear isr bits
+  outbr(0xff, EN0_ISR);
+ 
+  
+  // set start/end pages of receive buffer ring.
   outbr(RX_BUFFER_START, EN0_STARTPG);
   outbr(RX_BUFFER_END, EN0_STOPPG);
 
-  // set boundary and current page
+  // set boundary and current page.
   outbr(RX_BUFFER_START, EN0_BOUNDARY);
   outbr(NE_PAGE1_STOP, NE_CMD);
   outbr(RX_BUFFER_START, EN1_CURR);
 
+  // set receive configuration. (rsr)
+  // liberal: 
+  //    0xdb :: 11011011 :: 11 MON=0 PRO=1 AM=1 AB=0 AR=1 SEP=1
+  // conservative: 
+  //    0xc2 :: 11001011 :: 11 MON=0 PRO=0 AM=0 AB=0 AR=1 SEP=0
+  outbr(NE_PAGE0_STOP, NE_CMD);
+  outbr(0xc2, NE_BASE + 0x0b);
+
+  // setup irq
+  // 10010000
+  // irqen=1, irqs=001, ios=0000
+  //outbr(0x90, NE_BASE + 0x0c);
+  
   outbr(NE_PAGE0 | NE_START, NE_CMD);
 }
