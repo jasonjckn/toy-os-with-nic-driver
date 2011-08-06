@@ -3,9 +3,9 @@
         [gloss core]
         [aleph tcp udp]))
 
-#_ (def port 9000)
+(def port 9002)
+#_ (def port (inc port))
 (println "PORT: " port)
-(def port (inc port))
 
 (def sv (udp-socket {:frame (string :utf-8 :delimiters ["\n"] :as-str true) :port port }))
 (def client (udp-socket {:frame (string :utf-8 :delimiters ["\n"] :as-str true)}))
@@ -16,11 +16,11 @@
   (.flush out)
   )
 
-#_ (receive-all @sv
+(receive-all @sv
                 (fn [m] 
                   #_ (require 'core :reload)
                   (udp-handler @sv m)))
-#_ (enqueue @client {:port port :host "127.0.0.1" :message "GET 1 1"})
+#_ (enqueue @client {:port port :host "127.0.0.1" :message "test"})
 #_ (enqueue @client {:port port :host "192.168.1.110" :message "GET 1 1"})
 #_ (enqueue @client {:port port :host "172.16.133.1" :message "GET 1 1"})
 
