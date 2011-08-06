@@ -9,7 +9,7 @@ void ne2k_rx_enable();
 
 size_t ne2k_Receive(u8* pkt, size_t max_len);
 void ne2k_rx_status();
-void ne2k_Transmit(u8* pkt, size_t length);
+void ne2k_Transmit(u8* pkt, size_t length, int silent);
 void ne2k_Transmit2(u8* pkt, size_t length);
 
 void ne2k_Linkup_Main();

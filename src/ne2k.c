@@ -343,7 +343,7 @@ void ne2k_Transmit2(u8* pkt, size_t length)
 }
 
 // queue packet for transmission
-void ne2k_Transmit(u8* pkt, size_t length)
+void ne2k_Transmit(u8* pkt, size_t length, int silent)
 {
   CopyDataToCard(16*1024, pkt, length);
   
@@ -358,9 +358,12 @@ void ne2k_Transmit(u8* pkt, size_t length)
   // Wait for transmission to complete.
   u32 counter = 0;
   while (inb(NE_CMD) & 0x04) { counter++; }
-  monitor_write("KERNEL>> Transmitted 1 packet with ");
-  monitor_write_dec(length);
-  monitor_write(" bytes\n");
+
+  if(silent) {
+      monitor_write("KERNEL>> Transmitted 1 packet with ");
+      monitor_write_dec(length);
+      monitor_write(" bytes\n");
+  }
 
   g_TX_packets++;
 }

@@ -10,19 +10,22 @@
 #include "isr.h"
 
 void print_pkt(u8* buf, size_t len );
+void send_arp_reply();
 
 void nic_int(registers_t r) {
-    monitor_write("KERNEL>> NIC interrupt\n");
+    //monitor_write("KERNEL>> NIC interrupt\n");
 
     u8 buf[500] = {};
     size_t len = ne2k_Receive(buf, 400);
     //print_pkt(buf, len);
     udp_pkt_t* pkt = (udp_pkt_t*)buf;
     //size_t msg_len = (pkt->udp.len - sizeof(udp_hdr_t))
-    monitor_write("Msg> ");
+    monitor_write("Clojure says> ");
     monitor_write(buf+sizeof(udp_pkt_t));
 
+    monitor_write("You say> "); 
 
+    outbr(0x01, 0x307);
 }
 
 char kbd_to_ascii(unsigned char cx) {
@@ -56,9 +59,10 @@ void kbd_drv(registers_t r) {
             line[cursor] = '\n';
             line[cursor+1] = '\0';
             send_pkt(line);
+            send_arp_reply();
             memset(line, 'X', 80);
             cursor = 0;
-            monitor_write("Chat> "); 
+            monitor_write("You say> "); 
         }
     }
 }
@@ -93,10 +97,18 @@ void kbd_drv2(registers_t r) {
     }
 }
 
+void send_arp_reply() {
+    u8 pkt[] = {0x00, 0x50, 0x56, 0xc0, 0x00, 0x08, 0xb0, 0xc4, 0x20, 0x00, 0x00, 0x00, 0x08, 0x06, 0x00, 0x01,
+0x08, 0x00, 0x06, 0x04, 0x00, 0x02, 0xb0, 0xc4, 0x20, 0x00, 0x00, 0x00, 0xac, 0x10, 0x85, 0x9f,
+0x00, 0x50, 0x56, 0xc0, 0x00, 0x08, 0xac, 0x10, 0x85, 0x01};
+
+    ne2k_Transmit(pkt, 42, 1);
+}
+
 void send_pkt(char* s) {
     u8 buf[500] = {};
     int len = create_pkt(buf, s);
-    ne2k_Transmit(buf, len);
+    ne2k_Transmit(buf, len, 0);
 }
 
 void standard() {
@@ -112,7 +124,7 @@ void standard() {
 
     monitor_write("KERNEL>> Kernel Finished Loading\n\n");
 
-    monitor_write("Chat> "); 
+    monitor_write("You say> "); 
 }
 
 int main(struct multiboot *mboot_ptr)

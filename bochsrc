@@ -11,8 +11,8 @@ clock: sync=realtime
 cpu: ips=500000
 
 panic: action=fatal
-debug: action=report
-info: action=report
+#debug: action=report
+#info: action=report
 
 ne2k: ioaddr=0x300, irq=3, mac=b0:c4:20:00:00:00, ethmod=linux, ethdev=eth0
 
