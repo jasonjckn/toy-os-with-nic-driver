@@ -105,22 +105,6 @@ void ne2k_GetStats(u32* rx, u32* tx)
 #define NESM_STOP_PG    0x80    /* Last page +1 of RX ring */
 
 
-void ne2k_rx_enable()
-{
-  outbr(NE_PAGE0_STOP, NE_CMD);
-  outbr(RX_BUFFER_START, EN0_BOUNDARY);
-  outbr(NE_PAGE1_STOP, NE_CMD);
-  outbr(RX_BUFFER_START, EN1_CURR);
-  outbr(NE_START, NE_CMD);
-}
-
-void ne2k_rx_disable()
-{
-  // do nothing
-  outbr(NE_STOP, NE_CMD);
-}
-
-
 // setup descriptors, start packet reception
 void ne2k_Init(void)
 {
